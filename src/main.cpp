@@ -39,7 +39,7 @@ auto get_noise(float x, float y, NoiseSettings settings) -> float {
 }
 
 auto generate_map() -> void {
-    NoiseSettings settings = {4, 1.0f, 0.4f, 4.0f};
+    NoiseSettings settings = {4, 1.0f, 0.38f, 5.0f};
 
     for(int x = 0; x < 128; x++){
         for(int y = 0; y < 128; y++){
@@ -60,8 +60,12 @@ auto generate_image() -> void {
 
             if(map_val < 0.5f) {
                 genColor = GU_COLOR(0.0f, 0.0f, map_val, 1.0f);
-            } else if (map_val > 0.5f && map_val < 0.55f) {
+            } else if (map_val > 0.5f && map_val < 0.52f) {
                 genColor = GU_COLOR(1.0f, map_val + 0.2f, 0.0f, 1.0f);
+            } else if(map_val > 0.66f && map_val < 0.7f) {
+                genColor = GU_COLOR(map_val, map_val, map_val, 1.0f);
+            } else if (map_val > 0.7f) {
+                genColor = GU_COLOR(map_val + 0.2f, map_val + 0.2f, map_val + 0.2f, 1.0f);
             } else {
                 genColor = GU_COLOR(0.0f, 1.0f - map_val + 0.4f, 0.0f, 1.0f);
             }
