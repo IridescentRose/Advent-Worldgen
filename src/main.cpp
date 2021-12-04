@@ -1,56 +1,13 @@
 #include "setup.hpp"
 #include "gfx.hpp" 
-#include "fastnoise.hpp"
 #include "benchmark.hpp"
+#include "worldgen.hpp"
 #include <pspgu.h>
 
 PSP_MODULE_INFO("Worldgen", 0, 1, 0);
 
-FastNoiseLite fsl;
-
-float map[128 * 128];
-const float FREQUENCY = 1;
-
-struct NoiseSettings {
-    uint8_t octaves;
-    float frequency;
-    float persistence;
-    float mod_freq;
-};
-
-auto get_noise(float x, float y, NoiseSettings settings) -> float {
-
-    float amp = 1.0f;
-    float freq = settings.frequency;
-
-    float sum_noise = 0.0f;
-    float sum_amp = 0.0f;
-
-    for(auto i = 0; i < settings.octaves; i++) {
-        auto normalized_noise = (fsl.GetNoise(x * freq, y * freq) + 1.0f) / 2.0f * amp;
-        sum_noise += normalized_noise;
-        sum_amp += amp;
-
-        amp *= settings.persistence;
-        freq *= settings.mod_freq;
-    }
-
-    return sum_noise / sum_amp;
-}
-
-auto generate_map() -> void {
-    NoiseSettings settings = {4, 1.0f, 0.38f, 5.0f};
-
-    for(int x = 0; x < 128; x++){
-        for(int y = 0; y < 128; y++){
-            map[x*128 + y] = get_noise(static_cast<float>(x), static_cast<float>(y), settings);
-        }
-    }
-}
-
 uint32_t image[256 * 256];
-
-auto generate_image() -> void {
+auto generate_image(float* map) -> void {
     for(auto x = 0; x < 256; x++) {
         for(auto y = 0; y < 256; y++) {
             auto idx = x / 2 * 128 + y/2;
@@ -81,15 +38,12 @@ auto main() -> int {
 	
     GFX::init();
     GFX::clear(0xFF333333);
-    
-    fsl.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    fsl.SetFrequency(FREQUENCY * 0.01f);
 
-    fsl.SetSeed(-1);
+    Worldgen gen;
 
-    BENCHMARK(generate_map(), "Map Gen");
+    BENCHMARK(gen.generate_map(), "Map Gen");
 
-    generate_image();
+    generate_image(gen.get_map());
     GFX::draw_img(image);
 
 	while(true) {}

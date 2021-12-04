@@ -2,6 +2,7 @@ TARGET = Worldgen
 OBJS = src/benchmark.o \
 src/setup.o \
 src/gfx.o \
+src/worldgen.o \
 src/main.o
 
 INCDIR = $(PSPPATH)/include
