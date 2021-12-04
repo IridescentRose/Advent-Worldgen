@@ -4,6 +4,4 @@ World Generator Tests
 
 ## Day 2
 
-Biome map:
-
-Biomes. They exist.
+![Terrain Generation Example](days/day2.png)
