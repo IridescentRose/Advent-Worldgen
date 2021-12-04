@@ -25,9 +25,15 @@ class Worldgen {
             return map;
         }
 
+        auto get_biome_map() -> float* {
+            return biome_map;
+        }
+
     private:
         auto get_noise(float x, float y, NoiseSettings settings) -> float;
+        auto generate_biomes() -> void;
         
         FastNoiseLite fsl;
         float map[128 * 128];
+        float biome_map[128 * 128];
 };

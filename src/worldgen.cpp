@@ -31,11 +31,30 @@ auto Worldgen::get_noise(float x, float y, NoiseSettings settings) -> float {
 }
 
 auto Worldgen::generate_map() -> void {
+    generate_biomes();
+
     NoiseSettings settings = {4, 1.0f, 0.38f, 5.0f};
 
     for(int x = 0; x < 128; x++){
         for(int y = 0; y < 128; y++){
             map[x*128 + y] = get_noise(static_cast<float>(x), static_cast<float>(y), settings);
+        }
+    }
+
+}
+
+auto Worldgen::generate_biomes() -> void {
+    //Setup Cellular Noise
+    fsl.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+    fsl.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_Hybrid);
+    fsl.SetCellularReturnType(FastNoiseLite::CellularReturnType_CellValue);
+
+    for(int x = 0; x< 128; x++) {
+        for(int y = 0; y < 128; y++){
+            biome_map[x*128 + y] = (fsl.GetNoise(
+                static_cast<float>(x) * 1.5f,
+                static_cast<float>(y) * 1.5f
+            ) + 1.0f) / 2.0f;
         }
     }
 }
