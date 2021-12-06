@@ -3,8 +3,11 @@
 #include "benchmark.hpp"
 #include "worldgen.hpp"
 #include <pspgu.h>
+#include <pspctrl.h>
 
 PSP_MODULE_INFO("Worldgen", 0, 1, 0);
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_VFPU | THREAD_ATTR_USER);
+PSP_HEAP_SIZE_KB(-1024);
 
 uint32_t image[256 * 256];
 
@@ -64,6 +67,23 @@ auto main() -> int {
     generate_image(gen.get_map(), gen.get_biome_map());
     GFX::draw_img(image);
 
-	while(true) {}
+    sceCtrlSetSamplingCycle(0);
+    sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
+
+    struct SceCtrlData padData;
+
+	while(true) {
+        sceCtrlReadBufferPositive(&padData, 1);
+
+        if(padData.Buttons & PSP_CTRL_CROSS){
+            gen.reseed();
+            BENCHMARK(gen.generate_map(), "Map Gen");
+
+
+            GFX::clear(0xFF333333);
+            generate_image(gen.get_map(), gen.get_biome_map());
+            GFX::draw_img(image);
+        }
+    }
 	return 0;
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <ctime>
 #include <cstdint>
 #include "fastnoise.hpp"
 
@@ -42,6 +43,11 @@ class Worldgen {
             return map;
         }
 
+        auto reseed() -> void {
+            seed = time(NULL);
+            fsl.SetSeed(time(NULL));
+        }
+
         auto get_biome_map() -> uint8_t* {
             return biome_map;
         }
@@ -55,4 +61,5 @@ class Worldgen {
         FastNoiseLite fsl;
         float map[128 * 128];
         uint8_t biome_map[128 * 128];
+        uint64_t seed;
 };

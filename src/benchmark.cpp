@@ -17,6 +17,6 @@ auto end_bench(const char* name) -> void {
 	auto end = sceKernelGetSystemTimeLow();
 	auto res = end - start_time;
 
-    pspDebugScreenPrintf("[Test]: %s took %u microseconds!\nCan be ran %d times per second\n", name, res, MICROSECONDS / res);
-    printf("[Test]: %s took %u microseconds!\nCan be ran %d times per second\n", name, res, MICROSECONDS / res);
+    pspDebugScreenPrintf("[Test]: %s took %u microseconds!\n", name, res);
+    printf("[Test]: %s took %u microseconds!\n", name, res);
 }

@@ -1,12 +1,13 @@
 
 #include "worldgen.hpp"
-#include <ctime>
 
 const float FREQUENCY = 2;
 
 Worldgen::Worldgen() {
     fsl.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     fsl.SetFrequency(FREQUENCY * 0.01f);
+
+    seed = time(NULL);
     fsl.SetSeed(time(NULL));
 }
 
@@ -101,9 +102,9 @@ auto Worldgen::generate_noise(float x, float y) -> float {
 
 auto Worldgen::get_biome(float temp, float prec) -> BiomeType {
 
-    if(temp < 0.4f) {
+    if(temp < 0.35f) {
         return BIOME_TUNDRA;
-    } else if(temp >= 0.4f && temp <= 0.65f) {
+    } else if(temp >= 0.35f && temp <= 0.65f) {
         if(prec < 0.5f) {
             return BIOME_FOREST;
         } else {
@@ -147,14 +148,14 @@ auto Worldgen::generate_map() -> void {
                 
                 //Generate temperature
                 float temp = generate_noise(
-                    static_cast<float>(x) / 1.0f, 
-                    static_cast<float>(y) / 1.0f
+                    static_cast<float>(x) / 3.0f, 
+                    static_cast<float>(y) / 3.0f
                 );
 
                 //Generate precipitation
                 float prec = generate_noise(
-                    static_cast<float>(x) / 1.5f, 
-                    static_cast<float>(y) / 1.5f
+                    static_cast<float>(y) / 1.5f,
+                    static_cast<float>(x) / 1.5f
                 );
 
                 biome_map[idx] = static_cast<uint8_t>(get_biome(temp, prec));
@@ -164,6 +165,11 @@ auto Worldgen::generate_map() -> void {
     }
 
     //Perlin Worms for rivers
+    for(int x = 0; x < 8; x++) {
+        for(int y = 0; y < 8; y++) {
+            
+        }
+    }
 
     //Add Terrain Layer
     for(int x = 0; x < 128; x++){
