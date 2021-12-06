@@ -123,6 +123,30 @@ auto Worldgen::get_biome(float temp, float prec) -> BiomeType {
     return BIOME_OCEAN;
 } 
 
+auto step_direction(int16_t& x, int16_t& y, float rot) {
+    if(rot >= 0.0f && rot <= 45.0f) {
+        x += 1;
+    } else if (rot >= 45.0f && rot <= 90.0f) {
+        x += 1;
+        y += 1;
+    } else if (rot >= 90.0f && rot <= 135.0f){
+        y += 1;
+    } else if (rot >= 135.0f && rot <= 180.0f){
+        x -= 1;
+        y += 1;
+    } else if (rot >= 180.0f && rot <= 225.0f){
+        x -= 1;
+    } else if (rot >= 225.0f && rot <= 270.0f){
+        x -= 1;
+        y -= 1;
+    } else if (rot >= 270.0f && rot <= 335.0f){
+        y -= 1;
+    } else if (rot >= 335.0f && rot <= 360.0f){
+        x += 1;
+        y -= 1;
+    }
+}
+
 auto Worldgen::generate_map() -> void {
 
     //Base layer
@@ -167,7 +191,35 @@ auto Worldgen::generate_map() -> void {
     //Perlin Worms for rivers
     for(int x = 0; x < 8; x++) {
         for(int y = 0; y < 8; y++) {
-            
+            //Determine if spawns
+            uint8_t hash_result = static_cast<uint8_t>(x + ~seed << y);
+            if(hash_result >= 128) continue;
+
+            //Spawn @ Location with Direction
+            int16_t worm_head_x = x * 16 + (hash_result % 16);
+            int16_t worm_head_y = y * 16 + (hash_result * y) % 16;
+
+            float worm_head_rotation = generate_noise(worm_head_x, worm_head_y) * 360.0f; //Map 0 -> 360 degrees
+
+            //Execute Worm
+            const uint8_t MAX_RUNS = 64;
+
+            for(uint8_t runs = 0; runs < MAX_RUNS; runs++) {
+                auto idx = worm_head_x*128 + worm_head_y;
+                auto bio_val = biome_map[idx];
+
+                if(bio_val == BIOME_OCEAN || bio_val == BIOME_RIVER) break;
+                if(worm_head_x < 0 || worm_head_y < 0 || worm_head_x >= 128 || worm_head_y >= 128) break;
+
+                biome_map[idx] = BIOME_RIVER;
+
+                float temp_x = static_cast<float>(worm_head_x) * 8.0f;
+                float temp_y = static_cast<float>(worm_head_y) * 8.0f;
+
+                worm_head_rotation += (generate_noise(temp_x, temp_y) -0.5f) * 120.0f;
+
+                step_direction(worm_head_x, worm_head_y, worm_head_rotation);
+            }
         }
     }
 
