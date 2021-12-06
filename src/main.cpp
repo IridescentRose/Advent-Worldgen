@@ -18,37 +18,33 @@ union Color {
     } rgba;
 };
 
-auto generate_image(float* map, float* biome) -> void {
+auto get_color(uint8_t b) -> uint32_t {
+    switch(static_cast<BiomeType>(b)){
+        case BIOME_OCEAN: return GU_RGBA(0, 0, 255, 255);
+        case BIOME_BEACH: return GU_RGBA(255, 255, 0, 255);
+        case BIOME_RIVER: return GU_RGBA(0, 128, 255, 255);
+        case BIOME_DESERT: return GU_RGBA(255, 192, 0, 255);
+        case BIOME_PLAINS: return GU_RGBA(128, 255, 128, 255);
+        case BIOME_FOREST: return GU_RGBA(96, 192, 96, 255);
+        case BIOME_RAINFOREST: return GU_RGBA(96, 255, 96, 255);
+        case BIOME_TUNDRA: return GU_RGBA(192, 192, 255, 255);
+        default: return GU_RGBA(255, 0, 0, 255);
+    }
+}
+
+auto generate_image(float* map, uint8_t* biome) -> void {
     for(auto x = 0; x < 256; x++) {
         for(auto y = 0; y < 256; y++) {
             auto idx = x / 2 * 128 + y/2;
+            uint8_t bio_val = biome[idx];
             float map_val = map[idx];
-            float bio_val = biome[idx];
 
             Color genColor;
+            genColor.c = get_color(bio_val);
 
-            if(map_val < 0.5f) {
-                genColor.c = GU_COLOR(0.0f, 0.0f, map_val, 1.0f);
-            } else if (map_val > 0.5f && map_val < 0.52f) {
-                genColor.c = GU_COLOR(1.0f, map_val + 0.2f, 0.0f, 1.0f);
-            } else if(map_val > 0.66f && map_val < 0.7f) {
-                genColor.c = GU_COLOR(map_val, map_val, map_val, 1.0f);
-            } else if (map_val > 0.7f) {
-                genColor.c = GU_COLOR(map_val + 0.2f, map_val + 0.2f, map_val + 0.2f, 1.0f);
-            } else {
-                genColor.c = GU_COLOR(0.0f, 1.0f - map_val + 0.4f, 0.0f, 1.0f);
-            }
-
-            auto temp = static_cast<int16_t>(bio_val * 128.0f);
-            if(temp > 255) {
-                temp = 255;
-            } else if (temp < 0) {
-                temp = 0;
-            }
-
-            if(!(map_val > 0.5f && map_val < 0.52f)) {
-                genColor.rgba.r = static_cast<uint8_t>(temp);
-            }
+            genColor.rgba.r *= map_val;
+            genColor.rgba.g *= map_val;
+            genColor.rgba.b *= map_val;
 
             image[x * 256 + y] = genColor.c;
         }
