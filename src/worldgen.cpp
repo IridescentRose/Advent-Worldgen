@@ -28,10 +28,11 @@ void* malloc_64(int size)
 
 volatile int x = 0;
 
-int add(int xptr) {
-    x += 10;
+int generate_ME(int wptr) {
+    Worldgen* wgen = (Worldgen*)wptr;
+    wgen->generate_map();
 
-    return x;
+    return (int)wgen;
 }
 
 auto Worldgen::init() -> void {
@@ -43,38 +44,13 @@ auto Worldgen::init() -> void {
 	sceKernelDcacheWritebackInvalidateAll();
     
     int ret = InitME(mei);
-    ret = CallME(mei, (int)add, (int)&x, -1, NULL, -1, NULL);
-
-    while(!mei->done) {}
-    printf("%d %d", x, ret);
+    ret = BeginME(mei, (int)generate_ME, (int)this, -1, NULL, -1, NULL);
 }
 
 inline auto range_map(float& input, float curr_range_min, float curr_range_max, float range_min, float range_max) -> void {
     input = (input - curr_range_min) * (range_max - range_min) / (curr_range_max - curr_range_min) + range_min;
 }
 
-/*
-    uint8_t octaves;
-    float amplitude;
-    float frequency;
-    float persistence;
-    float mod_freq;
-    float offset
-
-    float range_min;
-    float range_max;
-*/
-
-/*
-    BIOME_OCEAN     = 0,
-    BIOME_RIVER     = 1,
-    BIOME_PLAINS    = 2,
-    BIOME_DESERT    = 3,
-    BIOME_FOREST    = 4,
-    BIOME_RAINFOREST= 5,
-    BIOME_TUNDRA    = 6,
-    BIOME_BEACH     = 7
-*/
 auto Worldgen::get_settings(uint8_t biome) -> NoiseSettings*{
     static NoiseSettings noiseSettings[8] = {
     //  oct  amp  freq   per   mfrq  off  rngmin rngmax     type
@@ -304,7 +280,7 @@ auto Worldgen::data_fill_5() -> void {
 }
 
 auto Worldgen::data_fill() -> void {
-    
+    while(!mei->done){}
     BENCHMARK(data_fill_5(), "Data Fill");
 
 }

@@ -79,7 +79,7 @@ auto main() -> int {
     Worldgen gen;
     gen.init();
 
-    BENCHMARK(gen.generate_map(), "Map Gen");
+    //BENCHMARK(gen.generate_map(), "Map Gen");
     gen.data_fill();
 
     generate_image(gen.get_map(), gen.get_biome_map());

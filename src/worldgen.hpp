@@ -59,6 +59,7 @@ class Worldgen {
         auto get_biome(float temp, float prec) -> BiomeType;
         auto generate_noise(float x, float y) -> float;
         auto get_settings(uint8_t biome) -> NoiseSettings*;
+        friend int generate_ME(int wgen);
 
         auto data_fill_5() -> void;
 
