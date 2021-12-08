@@ -252,6 +252,42 @@ int gen_base_layer_ME(int genME) {
 }
 
 
+int simulate_worm_ME(int genME) {
+    volatile GenerateME* gen = (volatile GenerateME*)genME;
+
+    volatile Worldgen* wgen = gen->gen;
+    ((Worldgen*) wgen)->simulate_worm(gen->hash, gen->cX, gen->cY);
+
+    return gen->cX;
+}
+
+auto Worldgen::simulate_worm(int hash_result, int x, int y) -> void {
+    //Spawn @ Location with Direction
+    int16_t worm_head_x = x * 16 + (hash_result % 16);
+    int16_t worm_head_y = y * 16 + (hash_result * y) % 16;
+    float worm_head_rotation = generate_noise(worm_head_x, worm_head_y) * 360.0f; //Map 0 -> 360 degree
+    //Execute Worm
+    const uint8_t MAX_RUNS = 64;
+    for(uint8_t runs = 0; runs < MAX_RUNS; runs++) {
+        auto cX = worm_head_x / 16;
+        auto cY = worm_head_y / 16;
+        auto cIdx = cX * 8 + cY;
+        auto wX = worm_head_x % 16;
+        auto wY = worm_head_y % 16;
+        auto idx = wX*16 + wY;
+        auto bio_val = chunks[cIdx].biome_map[idx];
+
+        if(bio_val == BIOME_OCEAN || bio_val == BIOME_RIVER) break;
+        if(worm_head_x < 0 || worm_head_y < 0 || worm_head_x >= 128 || worm_head_y >= 128) break;
+        
+        chunks[cIdx].biome_map[idx] = BIOME_RIVER;
+        float temp_x = static_cast<float>(worm_head_x) * 8.0f;
+        float temp_y = static_cast<float>(worm_head_y) * 8.0f;
+        worm_head_rotation += (generate_noise(temp_x, temp_y) - 0.5f) * 120.0f;
+        step_direction(worm_head_x, worm_head_y, worm_head_rotation);
+    }
+}
+
 auto Worldgen::generate_map() -> void {
     //Base layer
     for(int cX = 0; cX < 8; cX++){
@@ -296,47 +332,25 @@ auto Worldgen::generate_map() -> void {
             uint8_t hash_result = static_cast<uint8_t>(x + ~seed << y);
             if(hash_result >= 128) continue;
 
-            //Spawn @ Location with Direction
-            int16_t worm_head_x = x * 16 + (hash_result % 16);
-            int16_t worm_head_y = y * 16 + (hash_result * y) % 16;
+            
+            GenerateME genME2;
+            genME2.cX = x;
+            genME2.cY = y;
+            genME2.gen = this;
+            genME2.hash = hash_result;
 
-            float worm_head_rotation = generate_noise(worm_head_x, worm_head_y) * 360.0f; //Map 0 -> 360 degrees
-
-            //Execute Worm
-            const uint8_t MAX_RUNS = 64;
-
-            for(uint8_t runs = 0; runs < MAX_RUNS; runs++) {
-
-                auto cX = worm_head_x / 16;
-                auto cY = worm_head_y / 16;
-
-                auto cIdx = cX * 8 + cY;
-
-                auto wX = worm_head_x % 16;
-                auto wY = worm_head_y % 16;
-
-                auto idx = wX*16 + wY;
-
-                auto bio_val = chunks[cIdx].biome_map[idx];
-
-                if(bio_val == BIOME_OCEAN || bio_val == BIOME_RIVER) break;
-                if(worm_head_x < 0 || worm_head_y < 0 || worm_head_x >= 128 || worm_head_y >= 128) break;
-
-                chunks[cIdx].biome_map[idx] = BIOME_RIVER;
-
-                float temp_x = static_cast<float>(worm_head_x) * 8.0f;
-                float temp_y = static_cast<float>(worm_head_y) * 8.0f;
-
-                worm_head_rotation += (generate_noise(temp_x, temp_y) - 0.5f) * 120.0f;
-
-                step_direction(worm_head_x, worm_head_y, worm_head_rotation);
+            if(mei->done){
+                sceKernelDcacheWritebackInvalidateRange((void*)&genME2, sizeof(GenerateME));
+                BeginME(mei, (int)simulate_worm_ME, (int)&genME2, -1, NULL, -1, NULL);
+            } else {
+                simulate_worm(hash_result, x, y);
             }
         }
     }
+
+    WaitME(mei);
     
     //Add Terrain Layer
-
-
     for(int cX = 0; cX < 8; cX++){
         for(int cY = 0; cY < 8; cY++) {
             GenerateME genME2;

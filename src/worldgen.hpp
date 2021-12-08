@@ -73,6 +73,9 @@ class Worldgen {
         auto gen_biome_layer(int cX, int cY) -> void;
         friend int gen_biome_layer_ME(int genME);
 
+        auto simulate_worm(int hash_result, int x, int y) -> void;
+        friend int simulate_worm_ME(int genME);
+
 
         /*
         auto data_fill_5() -> void;
@@ -91,4 +94,5 @@ struct GenerateME{
     volatile Worldgen* gen;
     volatile int cX;
     volatile int cY;
+    volatile int hash;
 };
