@@ -38,12 +38,19 @@ auto get_color(uint8_t b) -> uint32_t {
     }
 }
 
-auto generate_image(float* map, uint8_t* biome) -> void {
+auto generate_image(Worldgen* gen) -> void {
     for(auto x = 0; x < 256; x++) {
         for(auto y = 0; y < 256; y++) {
-            auto idx = x / 2 * 128 + y/2;
-            uint8_t bio_val = biome[idx];
-            float map_val = map[idx];
+            auto cX = x / 32;
+            auto cY = y / 32;
+
+            auto vX = (x % 32) / 2;
+            auto vY = (y % 32) / 2;
+
+            auto idx = vX * 16 + vY;
+
+            uint8_t bio_val = gen->get_biome_map(cX, cY)[idx];
+            float map_val = gen->get_map(cX, cY)[idx];
 
             Color genColor;
             genColor.c = get_color(bio_val);
@@ -79,10 +86,10 @@ auto main() -> int {
     Worldgen gen;
     gen.init();
 
-    //BENCHMARK(gen.generate_map(), "Map Gen");
+    BENCHMARK(gen.generate_map(), "Map Gen");
     gen.data_fill();
 
-    generate_image(gen.get_map(), gen.get_biome_map());
+    generate_image(&gen);
     GFX::draw_img(image);
 
     sceCtrlSetSamplingCycle(0);
@@ -99,7 +106,7 @@ auto main() -> int {
 
 
             GFX::clear(0xFF333333);
-            generate_image(gen.get_map(), gen.get_biome_map());
+            generate_image(&gen);
             GFX::draw_img(image);
         }
     }

@@ -44,7 +44,7 @@ auto Worldgen::init() -> void {
 	sceKernelDcacheWritebackInvalidateAll();
     
     int ret = InitME(mei);
-    ret = BeginME(mei, (int)generate_ME, (int)this, -1, NULL, -1, NULL);
+    //ret = BeginME(mei, (int)generate_ME, (int)this, -1, NULL, -1, NULL);
 }
 
 inline auto range_map(float& input, float curr_range_min, float curr_range_max, float range_min, float range_max) -> void {
@@ -161,46 +161,79 @@ auto step_direction(int16_t& x, int16_t& y, float rot) {
     }
 }
 
-auto Worldgen::generate_map() -> void {
-
-    //Base layer
-    for(int x = 0; x < 128; x++){
-        for(int y = 0; y < 128; y++){
-            map[x*128 + y] = generate_noise(static_cast<float>(x), static_cast<float>(y));
-            map[x*128 + y] += generate_noise(static_cast<float>(x) * 4.0f, static_cast<float>(y) * 4.0f) * 0.75f;
-            map[x*128 + y] /= 1.75f;
+auto Worldgen::gen_base_layer(int cX, int cY) -> void {
+    for(int x = 0; x < 16; x++){
+        for(int y = 0; y < 16; y++){
+            auto cIdx = cX * 8 + cY;
+            chunks[cIdx].height_map[x*16 + y] = generate_noise(static_cast<float>(x + cX*16), static_cast<float>(y + cY*16));
+            chunks[cIdx].height_map[x*16 + y] += generate_noise(static_cast<float>(x + cX*16) * 4.0f, static_cast<float>(y + cY*16) * 4.0f) * 0.75f;
+            chunks[cIdx].height_map[x*16 + y] /= 1.75f;
         }
     }
+}
 
+auto Worldgen::gen_biome_layer(int cX, int cY) -> void {
+    for(int x = 0; x < 16; x++){
+        for(int y = 0; y < 16; y++){
+            auto cIdx = cX * 8 + cY;
+            auto idx = x*16 + y;
+
+            auto settings = get_settings(chunks[cIdx].biome_map[idx]);
+
+            chunks[cIdx].height_map[idx] *= 0.5f;
+            chunks[cIdx].height_map[idx] += get_noise(
+                static_cast<float>(x + cX*16), 
+                static_cast<float>(y + cY*16),
+                settings
+            );
+        }
+    }
+}
+
+auto Worldgen::gen_biome_map(int cX, int cY) -> void {
     //Biome map
-    for(int x = 0; x < 128; x++){
-        for(int y =0; y < 128; y++){
+    for(int x = 0; x < 16; x++){
+        for(int y =0; y < 16; y++){
 
-            auto idx = x*128 + y;
-            auto val = map[idx];
+            auto idx = x*16 + y;
+            auto cIdx = cX * 8 + cY;
+            auto val = chunks[cIdx].height_map[idx];
+
             if(val < 0.46f){
-                biome_map[idx] = BiomeType::BIOME_OCEAN;
+                chunks[cIdx].biome_map[idx] = BiomeType::BIOME_OCEAN;
             } else if(val >= 0.46f && val <= 0.48f){
-                biome_map[idx] = BiomeType::BIOME_BEACH;
+                chunks[cIdx].biome_map[idx] = BiomeType::BIOME_BEACH;
             } else {
                 
                 //Generate temperature
                 float temp = generate_noise(
-                    static_cast<float>(x) / 3.0f, 
-                    static_cast<float>(y) / 3.0f
+                    static_cast<float>(x + cX*16) / 3.0f, 
+                    static_cast<float>(y + cY*16) / 3.0f
                 );
 
                 //Generate precipitation
                 float prec = generate_noise(
-                    static_cast<float>(y) / 1.5f,
-                    static_cast<float>(x) / 1.5f
+                    static_cast<float>(y + cY*16) / 1.5f,
+                    static_cast<float>(x + cX*16) / 1.5f
                 );
 
-                biome_map[idx] = static_cast<uint8_t>(get_biome(temp, prec));
+                chunks[cIdx].biome_map[idx] = static_cast<uint8_t>(get_biome(temp, prec));
 
             }
         }
     }
+}
+
+auto Worldgen::generate_map() -> void {
+    //Base layer
+    for(int cX = 0; cX < 8; cX++)
+        for(int cY = 0; cY < 8; cY++)
+            gen_base_layer(cX, cY);
+
+
+    for(int cX = 0; cX < 8; cX++)
+        for(int cY = 0; cY < 8; cY++)
+            gen_biome_map(cX, cY);
 
     //Perlin Worms for rivers
     for(int x = 0; x < 8; x++) {
@@ -219,18 +252,28 @@ auto Worldgen::generate_map() -> void {
             const uint8_t MAX_RUNS = 64;
 
             for(uint8_t runs = 0; runs < MAX_RUNS; runs++) {
-                auto idx = worm_head_x*128 + worm_head_y;
-                auto bio_val = biome_map[idx];
+
+                auto cX = worm_head_x / 16;
+                auto cY = worm_head_y / 16;
+
+                auto cIdx = cX * 8 + cY;
+
+                auto wX = worm_head_x % 16;
+                auto wY = worm_head_y % 16;
+
+                auto idx = wX*16 + wY;
+
+                auto bio_val = chunks[cIdx].biome_map[idx];
 
                 if(bio_val == BIOME_OCEAN || bio_val == BIOME_RIVER) break;
                 if(worm_head_x < 0 || worm_head_y < 0 || worm_head_x >= 128 || worm_head_y >= 128) break;
 
-                biome_map[idx] = BIOME_RIVER;
+                chunks[cIdx].biome_map[idx] = BIOME_RIVER;
 
                 float temp_x = static_cast<float>(worm_head_x) * 8.0f;
                 float temp_y = static_cast<float>(worm_head_y) * 8.0f;
 
-                worm_head_rotation += (generate_noise(temp_x, temp_y) -0.5f) * 120.0f;
+                worm_head_rotation += (generate_noise(temp_x, temp_y) - 0.5f) * 120.0f;
 
                 step_direction(worm_head_x, worm_head_y, worm_head_rotation);
             }
@@ -238,23 +281,13 @@ auto Worldgen::generate_map() -> void {
     }
 
     //Add Terrain Layer
-    for(int x = 0; x < 128; x++){
-        for(int y = 0; y < 128; y++){
-            auto idx = x*128 + y;
 
-            auto settings = get_settings(biome_map[idx]);
-
-            map[idx] *= 0.5f;
-            map[idx] += get_noise(
-                static_cast<float>(x), 
-                static_cast<float>(y),
-                settings
-            );
-
-        }
-    }
+    for(int cX = 0; cX < 8; cX++)
+        for(int cY = 0; cY < 8; cY++)
+            gen_biome_layer(cX, cY);
 }
 
+/*
 auto Worldgen::write_chunk(int offset_map, int offset_data) -> void {
     for(uint8_t x = 0; x < 16; x++) {
         for(uint8_t z = 0; z < 16; z++) {
@@ -277,10 +310,9 @@ auto Worldgen::data_fill_5() -> void {
             write_chunk( ((x*128)+y) * 16, ((y * 128 * 16) + (x * 16)) * 16);
         }
     }
-}
+}*/
 
 auto Worldgen::data_fill() -> void {
-    while(!mei->done){}
-    BENCHMARK(data_fill_5(), "Data Fill");
-
+    //while(!mei->done){}
+    //BENCHMARK(data_fill_5(), "Data Fill");
 }

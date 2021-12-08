@@ -27,6 +27,11 @@ enum BiomeType {
     BIOME_BEACH     = 7
 };
 
+struct Chunk {
+    float height_map[16 * 16];
+    uint8_t biome_map[16 * 16];
+};
+
 class Worldgen {
     public:
         Worldgen();
@@ -41,8 +46,8 @@ class Worldgen {
         auto generate_map() -> void;
         auto data_fill() -> void;
 
-        auto get_map() -> float* {
-            return map;
+        auto get_map(int x, int y) -> float* {
+            return chunks[x*8 + y].height_map;
         }
 
         auto reseed() -> void {
@@ -50,8 +55,8 @@ class Worldgen {
             fsl.SetSeed(time(NULL));
         }
 
-        auto get_biome_map() -> uint8_t* {
-            return biome_map;
+        auto get_biome_map(int x, int y) -> uint8_t* {
+            return chunks[x*8 + y].biome_map;
         }
 
     private:
@@ -61,13 +66,17 @@ class Worldgen {
         auto get_settings(uint8_t biome) -> NoiseSettings*;
         friend int generate_ME(int wgen);
 
-        auto data_fill_5() -> void;
+        auto gen_base_layer(int cX, int cY) -> void;
+        auto gen_biome_map(int cX, int cY) -> void;
+        auto gen_biome_layer(int cX, int cY) -> void;
 
+        /*
+        auto data_fill_5() -> void;
         auto write_chunk(int offset_map, int offset_data) -> void;
-        
+        */
+
         FastNoiseLite fsl;
-        float map[128 * 128];
-        uint8_t biome_map[128 * 128];
+        Chunk chunks[8 * 8];
         uint64_t seed;
 
         uint16_t* data;
