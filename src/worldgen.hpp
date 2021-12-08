@@ -28,8 +28,8 @@ enum BiomeType {
 };
 
 struct Chunk {
-    float height_map[16 * 16];
-    uint8_t biome_map[16 * 16];
+    volatile float height_map[16 * 16];
+    volatile uint8_t biome_map[16 * 16];
 };
 
 class Worldgen {
@@ -47,7 +47,7 @@ class Worldgen {
         auto data_fill() -> void;
 
         auto get_map(int x, int y) -> float* {
-            return chunks[x*8 + y].height_map;
+            return (float*)chunks[x*8 + y].height_map;
         }
 
         auto reseed() -> void {
@@ -56,7 +56,7 @@ class Worldgen {
         }
 
         auto get_biome_map(int x, int y) -> uint8_t* {
-            return chunks[x*8 + y].biome_map;
+            return (uint8_t*)chunks[x*8 + y].biome_map;
         }
 
     private:
@@ -67,8 +67,12 @@ class Worldgen {
         friend int generate_ME(int wgen);
 
         auto gen_base_layer(int cX, int cY) -> void;
+        friend int gen_base_layer_ME(int genME);
         auto gen_biome_map(int cX, int cY) -> void;
+        friend int gen_biome_map_ME(int genME);
         auto gen_biome_layer(int cX, int cY) -> void;
+        friend int gen_biome_layer_ME(int genME);
+
 
         /*
         auto data_fill_5() -> void;
@@ -80,4 +84,11 @@ class Worldgen {
         uint64_t seed;
 
         uint16_t* data;
+};
+
+
+struct GenerateME{
+    volatile Worldgen* gen;
+    volatile int cX;
+    volatile int cY;
 };

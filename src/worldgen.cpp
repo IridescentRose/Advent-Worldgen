@@ -43,8 +43,7 @@ auto Worldgen::init() -> void {
 	mei = (volatile struct me_struct*)( ((u32)(mei)) | 0x40000000);
 	sceKernelDcacheWritebackInvalidateAll();
     
-    int ret = InitME(mei);
-    //ret = BeginME(mei, (int)generate_ME, (int)this, -1, NULL, -1, NULL);
+    InitME(mei);
 }
 
 inline auto range_map(float& input, float curr_range_min, float curr_range_max, float range_min, float range_max) -> void {
@@ -224,16 +223,71 @@ auto Worldgen::gen_biome_map(int cX, int cY) -> void {
     }
 }
 
+int gen_biome_map_ME(int genME) {
+    GenerateME* gen = (GenerateME*)genME;
+
+    volatile Worldgen* wgen = gen->gen;
+    ((Worldgen*)wgen)->gen_biome_map(gen->cX, gen->cY);
+
+    return (int)wgen;
+}
+
+int gen_biome_layer_ME(int genME) {
+    GenerateME* gen = (GenerateME*)genME;
+
+    volatile Worldgen* wgen = gen->gen;
+    ((Worldgen*)wgen)->gen_biome_layer(gen->cX, gen->cY);
+
+    return (int)wgen;
+}
+
+
+int gen_base_layer_ME(int genME) {
+    volatile GenerateME* gen = (volatile GenerateME*)genME;
+
+    volatile Worldgen* wgen = gen->gen;
+    ((Worldgen*) wgen)->gen_base_layer(gen->cX, gen->cY);
+
+    return gen->cX;
+}
+
+
 auto Worldgen::generate_map() -> void {
     //Base layer
-    for(int cX = 0; cX < 8; cX++)
-        for(int cY = 0; cY < 8; cY++)
+    for(int cX = 0; cX < 8; cX++){
+        for(int cY = 0; cY < 8; cY++) {
+            GenerateME genME2;
+            genME2.cX = cX;
+            genME2.cY = cY;
+            genME2.gen = this;
+
+            sceKernelDcacheWritebackInvalidateRange((void*)&genME2, sizeof(GenerateME));
+            
+            BeginME(mei, (int)gen_base_layer_ME, (int)&genME2, -1, NULL, -1, NULL);
+            
+            cY++;
             gen_base_layer(cX, cY);
+            WaitME(mei);
+        }
+    }
+    
 
+    for(int cX = 0; cX < 8; cX++){
+        for(int cY = 0; cY < 8; cY++) {
+            GenerateME genME2;
+            genME2.cX = cX;
+            genME2.cY = cY;
+            genME2.gen = this;
 
-    for(int cX = 0; cX < 8; cX++)
-        for(int cY = 0; cY < 8; cY++)
+            sceKernelDcacheWritebackInvalidateRange((void*)&genME2, sizeof(GenerateME));
+            
+            BeginME(mei, (int)gen_biome_map_ME, (int)&genME2, -1, NULL, -1, NULL);
+            
+            cY++;
             gen_biome_map(cX, cY);
+            WaitME(mei);
+        }
+    }
 
     //Perlin Worms for rivers
     for(int x = 0; x < 8; x++) {
@@ -279,12 +333,27 @@ auto Worldgen::generate_map() -> void {
             }
         }
     }
-
+    
     //Add Terrain Layer
 
-    for(int cX = 0; cX < 8; cX++)
-        for(int cY = 0; cY < 8; cY++)
+
+    for(int cX = 0; cX < 8; cX++){
+        for(int cY = 0; cY < 8; cY++) {
+            GenerateME genME2;
+            genME2.cX = cX;
+            genME2.cY = cY;
+            genME2.gen = this;
+
+            sceKernelDcacheWritebackInvalidateRange((void*)&genME2, sizeof(GenerateME));
+            
+            BeginME(mei, (int)gen_biome_layer_ME, (int)&genME2, -1, NULL, -1, NULL);
+            
+            cY++;
             gen_biome_layer(cX, cY);
+            WaitME(mei);
+        }
+    }
+
 }
 
 /*

@@ -7,7 +7,7 @@ src/main.o
 
 INCDIR = $(PSPPATH)/include
 INCDIR += 
-CFLAGS = -Wall -Ofast -G0
+CFLAGS = -Wall -Ofast -G0 -g3
 CXXFLAGS = -std=gnu++17
 ASFLAGS = $(CFLAGS)
 LIBS= -lstdc++ -lpsppower -lME
