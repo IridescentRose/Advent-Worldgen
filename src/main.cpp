@@ -4,6 +4,7 @@
 #include "worldgen.hpp"
 #include <pspgu.h>
 #include <pspctrl.h>
+#include <psppower.h>
 
 PSP_MODULE_INFO("Worldgen", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_VFPU | THREAD_ATTR_USER);
@@ -56,7 +57,9 @@ auto generate_image(float* map, uint8_t* biome) -> void {
 
 auto main() -> int {
 	SetupCallbacks();
-	
+
+    scePowerSetClockFrequency(333, 333, 166);
+    
     GFX::init();
     GFX::clear(0xFF333333);
 

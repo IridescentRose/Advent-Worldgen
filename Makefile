@@ -10,7 +10,7 @@ INCDIR +=
 CFLAGS = -Wall -Ofast -G0
 CXXFLAGS = -std=gnu++17
 ASFLAGS = $(CFLAGS)
-LIBS= -lstdc++
+LIBS= -lstdc++ -lpsppower
 
 
 # PSP Stuff
