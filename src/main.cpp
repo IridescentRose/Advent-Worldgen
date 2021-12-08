@@ -61,8 +61,10 @@ auto main() -> int {
     GFX::clear(0xFF333333);
 
     Worldgen gen;
+    gen.init();
 
     BENCHMARK(gen.generate_map(), "Map Gen");
+    gen.data_fill();
 
     generate_image(gen.get_map(), gen.get_biome_map());
     GFX::draw_img(image);

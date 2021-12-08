@@ -37,7 +37,9 @@ class Worldgen {
         void operator=(const Worldgen&) = delete;
         void operator=(const Worldgen&&) = delete;
 
+        auto init() -> void;
         auto generate_map() -> void;
+        auto data_fill() -> void;
 
         auto get_map() -> float* {
             return map;
@@ -57,9 +59,20 @@ class Worldgen {
         auto get_biome(float temp, float prec) -> BiomeType;
         auto generate_noise(float x, float y) -> float;
         auto get_settings(uint8_t biome) -> NoiseSettings*;
+
+
+        auto data_fill_1() -> void;
+        auto data_fill_2() -> void;
+        auto data_fill_3() -> void;
+        auto data_fill_4() -> void;
+        auto data_fill_5() -> void;
+
+        auto write_chunk(int offset_map, int offset_data) -> void;
         
         FastNoiseLite fsl;
         float map[128 * 128];
         uint8_t biome_map[128 * 128];
         uint64_t seed;
+
+        uint16_t* data;
 };
