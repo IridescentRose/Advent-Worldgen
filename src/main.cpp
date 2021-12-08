@@ -87,7 +87,7 @@ auto main() -> int {
     gen.init();
 
     BENCHMARK(gen.generate_map(), "Map Gen");
-    gen.data_fill();
+    BENCHMARK(gen.data_fill(), "Data Fill");
 
     generate_image(&gen);
     GFX::draw_img(image);

@@ -36,9 +36,10 @@ int generate_ME(int wptr) {
 }
 
 auto Worldgen::init() -> void {
-    data = (uint16_t*)calloc(1, sizeof(uint16_t) * 128 * 128 * 128);
-
-
+    for(int x = 0; x < 8; x++)
+        for(int y = 0; y < 8; y++)
+            chunks[x * 8 + y].data = (uint16_t*)calloc(1, sizeof(16 * 16 * 128 * sizeof(uint16_t)));
+    
     mei = (volatile struct me_struct*)malloc_64(sizeof(struct me_struct));
 	mei = (volatile struct me_struct*)( ((u32)(mei)) | 0x40000000);
 	sceKernelDcacheWritebackInvalidateAll();
@@ -370,32 +371,49 @@ auto Worldgen::generate_map() -> void {
 
 }
 
-/*
-auto Worldgen::write_chunk(int offset_map, int offset_data) -> void {
+
+auto Worldgen::write_chunk(int cX, int cY) -> void {
     for(uint8_t x = 0; x < 16; x++) {
         for(uint8_t z = 0; z < 16; z++) {
-            uint16_t val = map[x * 128 + z + offset_map] * 128.0f;
+
+            auto cIDX = cX * 8 + cY;
+            uint16_t val = chunks[cIDX].height_map[x * 16 + z] * 128.0f;
 
             for(uint16_t y = 0; y < val; y++) {
                 if(y < 32){
-                    data[(z * 128 * 16) + (x * 16) + y + offset_data] = 0xCAFE;
+                    chunks[cIDX].data[(z * 128 * 16) + (x * 16) + y] = 0xCAFE;
                 } else {
-                    data[(z * 128 * 16) + (x * 16) + y + offset_data] = 0xDEAD;
+                    chunks[cIDX].data[(z * 128 * 16) + (x * 16) + y] = 0xDEAD;
                 }
             }
         }
     }
 }
 
-auto Worldgen::data_fill_5() -> void {
-    for(uint8_t x = 0; x < 8; x++) {
-        for(uint8_t y = 0; y < 8; y++){
-            write_chunk( ((x*128)+y) * 16, ((y * 128 * 16) + (x * 16)) * 16);
-        }
-    }
-}*/
+int write_chunk_ME(int genME) {
+    volatile GenerateME* gen = (volatile GenerateME*)genME;
+
+    volatile Worldgen* wgen = gen->gen;
+    ((Worldgen*) wgen)->write_chunk(gen->cX, gen->cY);
+
+    return gen->cX;
+}
 
 auto Worldgen::data_fill() -> void {
-    //while(!mei->done){}
-    //BENCHMARK(data_fill_5(), "Data Fill");
+    for(uint8_t x = 0; x < 8; x++) {
+        for(uint8_t y = 0; y < 8; y++){
+            GenerateME genME2;
+            genME2.cX = x;
+            genME2.cY = y;
+            genME2.gen = this;
+        
+            sceKernelDcacheWritebackInvalidateRange((void*)&genME2, sizeof(GenerateME));
+            BeginME(mei, (int)write_chunk_ME, (int)&genME2, -1, NULL, -1, NULL);
+
+            y++;
+
+            write_chunk(x, y);
+            WaitME(mei);
+        }
+    }
 }

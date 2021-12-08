@@ -30,6 +30,7 @@ enum BiomeType {
 struct Chunk {
     volatile float height_map[16 * 16];
     volatile uint8_t biome_map[16 * 16];
+    volatile uint16_t* data;
 };
 
 class Worldgen {
@@ -77,16 +78,13 @@ class Worldgen {
         friend int simulate_worm_ME(int genME);
 
 
-        /*
-        auto data_fill_5() -> void;
-        auto write_chunk(int offset_map, int offset_data) -> void;
-        */
+        auto write_chunk(int cX, int cY) -> void;
+        friend int write_chunk_ME(int genME);
+        
 
         FastNoiseLite fsl;
         Chunk chunks[8 * 8];
         uint64_t seed;
-
-        uint16_t* data;
 };
 
 
