@@ -5,6 +5,8 @@
 #include <pspgu.h>
 #include <pspctrl.h>
 #include <psppower.h>
+#include "me.h"
+#include <stdio.h>
 
 PSP_MODULE_INFO("Worldgen", 0, 1, 0);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_VFPU | THREAD_ATTR_USER);
@@ -60,6 +62,17 @@ auto main() -> int {
 
     scePowerSetClockFrequency(333, 333, 166);
     
+    int ret = pspSdkLoadStartModule("./mediaengine.prx", PSP_MEMORY_PARTITION_KERNEL);
+
+	if (ret < 0) {
+		printf("ME Module Not Loaded!\n");
+        sceKernelExitGame();
+	}
+	else {
+		printf("ME Module Loaded\n");
+	}
+
+
     GFX::init();
     GFX::clear(0xFF333333);
 

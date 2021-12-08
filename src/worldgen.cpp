@@ -1,6 +1,10 @@
 
 #include "worldgen.hpp"
 #include "benchmark.hpp"
+#include "me.h"
+#include <pspkernel.h>
+#include <cstdio>
+#include <malloc.h>
 
 const float FREQUENCY = 2;
 
@@ -13,8 +17,36 @@ Worldgen::Worldgen() {
 
 }
 
+
+volatile struct me_struct* mei;
+void* malloc_64(int size)
+{
+	int mod_64 = size & 0x3f;
+	if (mod_64 != 0) size += 64 - mod_64;
+	return((void*)memalign(64, size));
+}
+
+volatile int x = 0;
+
+int add(int xptr) {
+    x += 10;
+
+    return x;
+}
+
 auto Worldgen::init() -> void {
     data = (uint16_t*)calloc(1, sizeof(uint16_t) * 128 * 128 * 128);
+
+
+    mei = (volatile struct me_struct*)malloc_64(sizeof(struct me_struct));
+	mei = (volatile struct me_struct*)( ((u32)(mei)) | 0x40000000);
+	sceKernelDcacheWritebackInvalidateAll();
+    
+    int ret = InitME(mei);
+    ret = CallME(mei, (int)add, (int)&x, -1, NULL, -1, NULL);
+
+    while(!mei->done) {}
+    printf("%d %d", x, ret);
 }
 
 inline auto range_map(float& input, float curr_range_min, float curr_range_max, float range_min, float range_max) -> void {
@@ -247,56 +279,6 @@ auto Worldgen::generate_map() -> void {
     }
 }
 
-auto Worldgen::data_fill_1() -> void {
-    for(int x = 0; x < 16; x++) {
-        for(int y = 0; y < 128; y++) {
-            for(int z = 0; z < 16; z++) {
-                data[(z * 128 * 16) + (x * 128) + y] = (y < (map[x * 128 + z] * 128.0f)) ? 0xCAFE : 0x0000;
-            }
-        }
-    }
-}
-
-
-auto Worldgen::data_fill_2() -> void {
-    for(int x = 0; x < 16; x++) {
-        for(int z = 0; z < 16; z++) {
-            for(int y = 0; y < 128; y++) {
-                data[(z * 128 * 16) + (x * 128) + y] = (y < (map[x * 128 + z] * 128.0f)) ? 0xCAFE : 0x0000;
-            }
-        }
-    }
-}
-
-auto Worldgen::data_fill_3() -> void {
-    for(uint8_t x = 0; x < 16; x++) {
-        for(uint8_t z = 0; z < 16; z++) {
-
-            uint16_t val = map[x * 128 + z] * 128.0f;
-
-            for(uint16_t y = 0; y < val; y++) {
-                data[(z * 128 * 16) + (x * 128) + y] = 0xCAFE;
-            }
-        }
-    }
-}
-
-auto Worldgen::data_fill_4() -> void {
-    for(uint8_t x = 0; x < 128; x++) {
-        for(uint8_t z = 0; z < 128; z++) {
-            uint16_t val = map[x * 128 + z] * 128.0f;
-
-            for(uint16_t y = 0; y < val; y++) {
-                if(y < 32){
-                    data[(z * 128 * 128) + (x * 128) + y] = 0xCAFE;
-                } else {
-                    data[(z * 128 * 128) + (x * 128) + y] = 0xDEAD;
-                }
-            }
-        }
-    }
-}
-
 auto Worldgen::write_chunk(int offset_map, int offset_data) -> void {
     for(uint8_t x = 0; x < 16; x++) {
         for(uint8_t z = 0; z < 16; z++) {
@@ -323,10 +305,6 @@ auto Worldgen::data_fill_5() -> void {
 
 auto Worldgen::data_fill() -> void {
     
-    BENCHMARK(data_fill_1(), "Data Fill");
-    BENCHMARK(data_fill_2(), "Data Fill");
-    BENCHMARK(data_fill_3(), "Data Fill");
-    BENCHMARK(data_fill_4(), "Data Fill");
     BENCHMARK(data_fill_5(), "Data Fill");
 
 }

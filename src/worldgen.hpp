@@ -60,11 +60,6 @@ class Worldgen {
         auto generate_noise(float x, float y) -> float;
         auto get_settings(uint8_t biome) -> NoiseSettings*;
 
-
-        auto data_fill_1() -> void;
-        auto data_fill_2() -> void;
-        auto data_fill_3() -> void;
-        auto data_fill_4() -> void;
         auto data_fill_5() -> void;
 
         auto write_chunk(int offset_map, int offset_data) -> void;
